@@ -2,6 +2,7 @@ package br.cefetmg.games;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.Camera;
@@ -41,6 +42,7 @@ public class CauldronGame extends ApplicationAdapter {
     private boolean aindaEstaCarregando = false;
     private float anguloRotacaoSopa = 0;
 
+    private int qualEfeito = 0;    
     @Override
     public void create() {
         // define a cor da borracha (fundo)
@@ -69,6 +71,7 @@ public class CauldronGame extends ApplicationAdapter {
 
         // solicita carregamento dos 2 modelos 3D da cena
         assets.load("caldeirao.obj", Model.class);
+        assets.load("caldeirao_1.obj", Model.class);
         assets.load("fogueira.obj", Model.class);
 
         // instancia e configura 2 tipos de renderizadores de partículas:
@@ -88,7 +91,9 @@ public class CauldronGame extends ApplicationAdapter {
         // solicita o carregamento dos efeitos de partículas
         ParticleEffectLoader.ParticleEffectLoadParameter loadParam = new ParticleEffectLoader.ParticleEffectLoadParameter(sistemaParticulas.getBatches());
         assets.load("fogo.pfx", ParticleEffect.class, loadParam);
+        assets.load("fogov.pfx", ParticleEffect.class, loadParam);
         assets.load("bolhas.pfx", ParticleEffect.class, loadParam);
+        assets.load("bolhasv.pfx", ParticleEffect.class, loadParam);
         
         // solicita carregamento da música
         musica = Gdx.audio.newMusic(Gdx.files.internal("zelda-potion-shop.mp3"));
@@ -97,24 +102,38 @@ public class CauldronGame extends ApplicationAdapter {
     }
 
     private void aoTerminoDoCarregamento() {
-        // configura instâncias de caldeirão e fogueira
-        caldeirao = new ModelInstance(assets.get("caldeirao.obj", Model.class));
         fogueira = new ModelInstance(assets.get("fogueira.obj", Model.class));
+        fogueira.transform.setToTranslation(0, -0.08f, 0);        
+
+        // instancia, configura e dá início ao efeito de fogo
+        sistemaParticulas.remove(fogo);
+        sistemaParticulas.remove(bolhas);
+        if(qualEfeito == 0){
+            caldeirao = new ModelInstance(assets.get("caldeirao.obj", Model.class));
+            fogo = ((ParticleEffect) assets.get("fogo.pfx")).copy(); 
+            bolhas = ((ParticleEffect) assets.get("bolhas.pfx")).copy();
+        }else{             
+            caldeirao = new ModelInstance(assets.get("caldeirao_1.obj", Model.class));
+            fogo = ((ParticleEffect) assets.get("fogov.pfx")).copy();
+            bolhas = ((ParticleEffect) assets.get("bolhasv.pfx")).copy();            
+        }       
+        fogo.init();
+        fogo.start();
+        fogo.translate(new Vector3(0, 0.1f, 0)); 
+
         fogueira.transform.setToTranslation(0, -0.08f, 0);
         sopa = caldeirao.getNode("topoDaSopa");
 
-        // instancia, configura e dá início ao efeito de fogo
-        fogo = ((ParticleEffect) assets.get("fogo.pfx")).copy();
+        // instancia, configura e dá início ao efeito de fogo        
         fogo.init();
         fogo.start();
         fogo.translate(new Vector3(0, 0.1f, 0));
         sistemaParticulas.add(fogo);
-
-        // instancia, configura e dá início ao efeito das bolhas
-        // use o campo ParticleEffect bolhas definido na linha #38
-        // ...
-        // ...
-        // ...
+        
+        bolhas.init();
+        bolhas.start();
+        bolhas.translate(new Vector3(0, 1.1f, 0));
+        sistemaParticulas.add(bolhas);
         
         // começa a música
         musica.setLooping(true);
@@ -148,6 +167,16 @@ public class CauldronGame extends ApplicationAdapter {
         cameraController.update();
 
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
+        
+        //Altera variavel que define qual efeito de particulas usar
+        if(Gdx.input.isKeyJustPressed(Input.Keys.SPACE)){
+            if(qualEfeito == 0){
+                qualEfeito = 1;
+            }else{
+                qualEfeito = 0;
+            }            
+            aoTerminoDoCarregamento();
+        }  
 
         // começa a desenhar os modelos da cena
         modelBatch.begin(camera);
